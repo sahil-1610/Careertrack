@@ -1,7 +1,9 @@
+// app/api/interview/[id]/route.js
 import { NextResponse } from "next/server";
 import { getDataFromToken } from "@/helpers/getDataFromToken";
 import User from "@/models/user.models";
 import { connectDB } from "@/helpers/dbConfig";
+import InterviewQuestion from "@/models/interview.model"; // Import the InterviewQuestion model
 
 export async function GET(request, { params }) {
   try {
@@ -18,12 +20,19 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const interview = user.interviewQuestions.find(
-      (q) => q._id.toString() === params.id
-    );
+    // Find the interview question by ID
+    const interviewId = params.id;
+    //   console.log("Fetching interview with ID:", params.id);
+
+    const interview = await InterviewQuestion.findById(interviewId);
+
+    //   console.log(interview);
 
     if (!interview) {
-      return NextResponse.json({ error: "Interview not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Interview not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true, interview });

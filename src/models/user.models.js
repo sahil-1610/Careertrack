@@ -1,7 +1,10 @@
+// models/user.model.js
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { ArrowUpTrayIcon } from "@heroicons/react/24/outline";
+import InterviewQuestion from "./interview.model";
+import InterviewAttempt from "./InterviewAttempt.model";
+import ResumeFeedback from "./resume.model";
 
 const userSchema = new mongoose.Schema(
   {
@@ -68,37 +71,24 @@ const userSchema = new mongoose.Schema(
         },
       ],
     },
-    interviewQuestions: {
-      type: [
-        {
-          _id: mongoose.Schema.Types.ObjectId,
-          jobtittle: String,
-          jobdescription: String,
-          jobexperience: Number,
-          questions: [
-            {
-              question: String,
-              answer: String,
-            },
-          ],
-        },
-      ],
-      default: [],
-    },
-    resumefeedback: {
-      type: [
-        {
-          _id: mongoose.Schema.Types.ObjectId,
-          improvementSuggestions: { type: [String], required: true },
-          missingSkills: { type: [String], required: true },
-          formattingFeedback: { type: [String], required: true },
-          similarityScore: { type: Number, required: true },
-          jobDescription: { type: String, required: true },
-          createdAt: { type: Date, default: Date.now },
-        },
-      ],
-      default: [],
-    },
+    interviewQuestion: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "InterviewQuestion",
+      },
+    ],
+    interviewAttempt: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "InterviewAttempt",
+      },
+    ],
+    resumeFeedback: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "ResumeFeedback",
+      },
+    ],
   },
   { timestamps: true }
 );

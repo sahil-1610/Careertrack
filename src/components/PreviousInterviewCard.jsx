@@ -1,24 +1,31 @@
 import { CardSpotlight } from "@/components/ui/card-spotlight";
+import Link from "next/link";
 
-export function PreviousInterviewCard() {
+export function PreviousInterviewCard({ interview }) {
   return (
     <CardSpotlight className="h-72 w-80">
       <p className="text-xl font-bold relative z-20 mt-2 text-white">
-        Previous Interviews
+        {interview.jobTitle}
       </p>
       <div className="text-neutral-200 mt-4 relative z-20">
         <ul className="list-none mt-2">
-          <Step title="interview No 1" />
-          <Step title="Full Stack Interview" />
-          <Step title="5 Question" />
+          <Step title={`Interview ID: ${interview._id}`} />
+          <Step title={`Job: ${interview.jobTitle}`} />
+          <Step title={`Experience: ${interview.jobExperience} years`} />
+          <Step title={`${interview.questions.length} Questions`} />
         </ul>
         <div className="flex gap-4 mt-6 justify-center">
-          <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
-             Start 
-          </button>
-          <button className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">
-            Feedback
-          </button>
+          <Link href={"/interview/" + interview._id + "/start"}>
+            <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+              Start
+            </button>
+          </Link>
+
+          <Link href={"/interview/" + interview._id + "/feedback"}>
+            <button className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">
+              Feedback
+            </button>
+          </Link>
         </div>
       </div>
     </CardSpotlight>

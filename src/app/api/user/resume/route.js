@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 import { connectDB } from "@/helpers/dbConfig";
 import User from "@/models/user.models";
+import ResumeFeedback from "@/models/resume.model";
 import { getDataFromToken } from "@/helpers/getDataFromToken";
 import PdfParse from "pdf-parse";
 import { generateAIResponse } from "@/helpers/geminiAIModel";
@@ -62,6 +62,13 @@ const getAiFeedback = async (resumeText, jobDescription) => {
   }
 };
 
+const getResumeVersion = async (userId) => {
+  const lastFeedback = await ResumeFeedback.findOne({ user: userId })
+    .sort({ resumeVersion: -1 })
+    .select("resumeVersion");
+  return (lastFeedback?.resumeVersion || 0) + 1;
+};
+
 export async function POST(request) {
   try {
     // Connect to the database
@@ -90,43 +97,51 @@ export async function POST(request) {
     const resumeText = await processResumeText(resumeFile);
     const feedback = await getAiFeedback(resumeText, jobDescription);
 
-    console.log("Feedback:", feedback);
+    // Get the next version number for this user's resume
+    const nextVersion = await getResumeVersion(userId);
 
-    // Construct the new resume feedback object
-    const newResumeFeedback = {
-      _id: new mongoose.Types.ObjectId(),
+    // Create new ResumeFeedback document
+    const newResumeFeedback = await ResumeFeedback.create({
+      user: userId,
+      resumeVersion: nextVersion,
+      resumeTitle: `Resume Version ${nextVersion}`,
       improvementSuggestions: feedback.improvementSuggestions,
       missingSkills: feedback.missingSkills,
       formattingFeedback: feedback.formattingFeedback,
       similarityScore: Number(feedback.matchPercentage),
       jobDescription: String(jobDescription),
-      createdAt: new Date(),
-    };
+      status: "pending",
+      reviewDate: null,
+    });
 
-    console.log("New Feedback Object:", newResumeFeedback);
-
-    // Update the user document
+    // Update user's feedback references
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
         $push: {
-          resumefeedback: {
-            $each: [newResumeFeedback],
-            $position: 0,
-          },
+          resumeFeedback: newResumeFeedback._id,
         },
       },
       { new: true }
     );
 
     if (!updatedUser) {
-      throw new Error("Failed to update resume feedback");
+      await ResumeFeedback.findByIdAndDelete(newResumeFeedback._id);
+      throw new Error("Failed to update user with resume feedback");
     }
 
-    console.log("Updated User:", updatedUser);
-
     // Respond with success
-    return NextResponse.json({ success: true, feedback }, { status: 200 });
+    return NextResponse.json(
+      {
+        success: true,
+        feedback: {
+          ...feedback,
+          resumeVersion: nextVersion,
+          feedbackId: newResumeFeedback._id,
+        },
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Resume feedback error:", error);
     return NextResponse.json(

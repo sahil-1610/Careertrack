@@ -3,6 +3,10 @@ import { connectDB } from "@/helpers/dbConfig";
 import User from "@/models/user.models";
 import { getDataFromToken } from "@/helpers/getDataFromToken";
 
+// Add route segment config to mark as dynamic
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export async function GET(request) {
   try {
     await connectDB();

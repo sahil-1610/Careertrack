@@ -2,9 +2,10 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import User from "@/models/user.models";
-import { chatWithAI } from "@/helpers/geminiAIModel";
+import { chatWithAI, generateAIResponse } from "@/helpers/geminiAIModel";
 import { getDataFromToken } from "@/helpers/getDataFromToken";
 import { connectDB } from "@/helpers/dbConfig";
+import InterviewQuestion from "@/models/interview.model"; // Import InterviewQuestion model
 
 export async function POST(request) {
   try {
@@ -44,12 +45,11 @@ export async function POST(request) {
       Position: ${position}
       Description: ${description}
       Experience: ${experience} years
-      
       Return ONLY a valid JSON array of questions and answers in this format:
-      [{"question": "question text", "answer": "answer text"}]`;
+      [{"question": "question text", "correctAnswer": "answer text"}]`;
 
-      // Get response from AI using the chatWithAI function
-      const responseText = await chatWithAI(inputPrompt);
+      // Get response from AI using the generateAIResponse function
+      const responseText = await generateAIResponse(inputPrompt);
 
       // Remove any markdown code blocks and whitespace
       let cleanedResponse = responseText.replace(/```(json)?/g, "").trim();
@@ -69,35 +69,34 @@ export async function POST(request) {
         throw new Error("Invalid questions format from AI");
       }
 
-      // Format questions
+      // Format questions with correctAnswer
       const questions = generatedQuestions.map((q) => ({
         question: q.question?.trim() || "",
-        answer: q.answer?.trim() || "",
+        correctAnswer: q.correctAnswer?.trim() || "",
       }));
 
-      if (questions.some((q) => !q.question || !q.answer)) {
+      if (questions.some((q) => !q.question || !q.correctAnswer)) {
         throw new Error("Some questions or answers are missing");
       }
 
       // Create new interview document
-      const newInterview = {
-        _id: new mongoose.Types.ObjectId(),
-        jobtittle: position,
-        jobdescription: description,
-        jobexperience: Number(experience),
+      const newInterview = new InterviewQuestion({
+        user: userId, // Relate the interview question to the user
+        jobTitle: position,
+        jobDescription: description,
+        jobExperience: Number(experience),
         questions: questions,
-        createdAt: new Date(),
-      };
+      });
 
-      // Update user with new interview questions with timeout
+      // Save interview to the InterviewQuestion collection
+      await newInterview.save();
+
+      // Add the new interview to the user's interviewQuestions array
       await User.findByIdAndUpdate(
         userId,
         {
           $push: {
-            interviewQuestions: {
-              $each: [newInterview],
-              $position: 0,
-            },
+            interviewQuestions: newInterview._id, // Store the interview ID in the user model
           },
         },
         {
@@ -141,6 +140,76 @@ export async function POST(request) {
       {
         error: "Failed to generate interview questions",
         details: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request) {
+  try {
+    // Ensure database connection
+    await connectDB();
+
+    // Get user ID from token
+    const userId = await getDataFromToken(request);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Validate userId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return NextResponse.json(
+        { error: "Invalid user ID format" },
+        { status: 400 }
+      );
+    }
+
+    // Find interviews with proper error handling
+    try {
+      const interviews = await InterviewQuestion.find({ user: userId })
+        .select("-__v")
+        .sort({ createdAt: -1 })
+        .lean()
+        .maxTimeMS(5000);
+
+      // Return empty array if no interviews found
+      if (!interviews) {
+        return NextResponse.json({
+          success: true,
+          interviews: [],
+          message: "No interviews found",
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        interviews,
+        count: interviews.length,
+      });
+    } catch (dbError) {
+      console.error("Database query error:", dbError);
+
+      // Handle specific database errors
+      if (dbError.name === "MongoTimeoutError") {
+        return NextResponse.json(
+          { error: "Database request timed out" },
+          { status: 503 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Failed to fetch interviews" },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error("GET interviews error:", error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       },
       { status: 500 }
     );
