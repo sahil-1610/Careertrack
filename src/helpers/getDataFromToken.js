@@ -3,8 +3,9 @@ import jwt from "jsonwebtoken";
 export const getDataFromToken = (request) => {
   try {
     const token = request.cookies.get("token")?.value || "";
+
     if (!token) {
-      throw new Error("No token found");
+      throw new Error("No token found in cookies");
     }
 
     if (!process.env.JWT_SECRET) {
@@ -20,6 +21,16 @@ export const getDataFromToken = (request) => {
     return decodedToken._id;
   } catch (error) {
     console.error("Token Error:", error.message);
+
+    // Handle specific errors for better clarity
+    if (error.message === "jwt expired") {
+      throw new Error("Token expired. Please log in again.");
+    }
+
+    if (error.message === "invalid token") {
+      throw new Error("Invalid token. Please log in again.");
+    }
+
     throw new Error("Authentication failed");
   }
 };

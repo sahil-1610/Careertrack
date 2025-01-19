@@ -36,6 +36,8 @@ export default function UserProfile() {
       } catch (error) {
         console.error("Profile fetch error:", error);
         setError(error.message);
+
+        //  window.location.href = "/login";
         if (
           error.message.includes("Unauthorized") ||
           error.message.includes("Authentication failed")

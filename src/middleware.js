@@ -2,19 +2,18 @@ import { NextResponse } from "next/server";
 
 export function middleware(request) {
   const path = request.nextUrl.pathname;
-  const isPublicPath = ["/login", "/signup", "/"].includes(path);
+  const isPublicPath = path === "/login" || path === "/signup" || path === "/";
 
-  // Redirect unauthenticated users from private routes
-  if (!isPublicPath && !isValidToken) {
+  const token = request.cookies.get("token")?.value || "";
+
+  // Redirect unauthenticated users to login (change this to /login)
+  if (!isPublicPath && !token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Redirect authenticated users from public routes
-  if (isPublicPath && isValidToken) {
+  if (isPublicPath && token) {
     return NextResponse.redirect(new URL("/profile", request.url));
   }
-
-  return NextResponse.next();
 }
 
 export const config = {
