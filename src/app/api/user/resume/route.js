@@ -109,6 +109,7 @@ export async function POST(request) {
       missingSkills: feedback.missingSkills,
       formattingFeedback: feedback.formattingFeedback,
       similarityScore: Number(feedback.matchPercentage),
+      resumeText: String(resumeText),
       jobDescription: String(jobDescription),
       status: "pending",
       reviewDate: null,

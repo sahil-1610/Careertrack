@@ -37,6 +37,10 @@ const resumeFeedbackSchema = new mongoose.Schema({
     type: String,
     required: [true, "Job description is required"],
   },
+  resumeText: {
+    type: String,
+    required: [true, "Resume Text is required"],
+  },
   status: {
     type: String,
     enum: ["pending", "reviewed", "archived"],
