@@ -3,37 +3,47 @@ import Image from "next/image";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useOutsideClick } from "./hooks/use-outside-click";
+// import { useInView } from "react-intersection-observer"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function JobSection() {
+  const [jobs, setJobs] = useState([]);
   const [active, setActive] = useState(null);
-  const [filter, setFilter] = useState("recent");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState("20");
+  const [totalPages, setTotalPages] = useState(50);
   const ref = useRef(null);
   const id = useId();
 
-  const handleFilterChange = (event) => {
-    setFilter(event.target.value);
-  };
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const response = await fetch(
+          `/api/jobs?page=${page}&per_page=${perPage}`
+        );
+        const data = await response.json();
+        setJobs(data.data);
+        setTotalPages(data.totalPages);
+      } catch (error) {
+        console.error("Failed to fetch jobs:", error);
+      }
+    };
 
-  // Dummy filter implementation
-  const getFilteredJobs = (filter) => {
-    switch (filter) {
-      case "hot":
-        return jobs.filter((job) => job.isHot); // Example filter logic
-      case "recent":
-        return jobs.sort((a, b) => new Date(b.date) - new Date(a.date));
-      case "date":
-        return jobs.sort((a, b) => new Date(a.date) - new Date(b.date));
-      default:
-        return jobs;
-    }
-  };
-
-  const filteredJobs = getFilteredJobs(filter);
+    fetchJobs();
+  }, [page, perPage]);
 
   useEffect(() => {
     function onKeyDown(event) {
       if (event.key === "Escape") {
-        setActive(false);
+        setActive(null);
       }
     }
 
@@ -49,40 +59,53 @@ export default function JobSection() {
 
   useOutsideClick(ref, () => setActive(null));
 
+  const handlePageChange = (newPage, number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const renderPaginationNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, page - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(
+        <Button
+          key={i}
+          variant={page === i ? "secondary" : "ghost"}
+          className={`w-10 h-10 p-0 ${
+            page === i
+              ? "bg-neutral-100 text-neutral-900"
+              : "text-blue-600 hover:text-blue-700"
+          }`}
+          onClick={() => handlePageChange(i)}
+        >
+          {i}
+        </Button>
+      );
+    }
+
+    return pages;
+  };
+
   return (
-    <div className="pt-32"> {/* Increased from pt-24 to pt-32 */}
-      {/* Filter section */}
-      <div className="w-[calc(100%-4rem)] mx-auto rounded-md mb-20 overflow-hidden"> {/* Increased margin bottom */}
-        <div className="text-center space-y-10"> {/* Increased spacing between elements */}
+    <div className="pt-32">
+      {/* Header remains the same */}
+      <div className="w-[calc(100%-4rem)] mx-auto rounded-md mb-20 overflow-hidden">
+        <div className="text-center space-y-10">
           <h1 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200">
-            Hey Sahil!
+            Job Opportunities
           </h1>
-          <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl mx-auto">
-            Welcome to the job board! Here you can find various opportunities
-            tailored to your skills and interests. Use the filters below to find
-            the best job matches based on your preferences.
-          </p>
-          <div className="inline-block">
-            <label
-              htmlFor="filter"
-              className="block text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2"
-            >
-              Filter by :
-            </label>
-            <select
-              id="filter"
-              value={filter}
-              onChange={handleFilterChange}
-              className="px-6 py-2 border border-neutral-300 rounded-md dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 min-w-[150px]"
-            >
-              <option value="recent">Recent</option>
-              <option value="hot">Hot</option>
-              <option value="date">Date</option>
-            </select>
-          </div>
         </div>
       </div>
 
+      {/* Modal and Job List components */}
       <AnimatePresence>
         {active && typeof active === "object" && (
           <motion.div
@@ -98,7 +121,7 @@ export default function JobSection() {
         {active && typeof active === "object" ? (
           <div className="fixed inset-0 grid place-items-center z-[100]">
             <motion.button
-              key={`button-${active.title}-${id}`}
+              key={`button-${active.job_title}-${id}`}
               layout
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -109,129 +132,105 @@ export default function JobSection() {
               <CloseIcon />
             </motion.button>
             <motion.div
-              layoutId={`card-${active.title}-${id}`}
+              layoutId={`card-${active.job_title}-${id}`}
               ref={ref}
               className="w-full max-w-[500px] h-full md:h-[90vh] flex flex-col bg-white dark:bg-neutral-900 sm:rounded-3xl overflow-hidden"
             >
-              <motion.div layoutId={`image-${active.title}-${id}`}>
+              <motion.div layoutId={`image-${active.job_title}-${id}`}>
                 <Image
                   priority
-                  width={200}
-                  height={200}
-                  src={active.image || "/jobs.jpg"}
-                  alt={active.title}
-                  className="w-full h-48 sm:rounded-tr-lg sm:rounded-tl-lg object-cover object-top"
+                  width={500}
+                  height={500}
+                  src={"/hiring.jpg"}
+                  alt={active.job_title}
+                  className="w-full h-48 sm:rounded-tr-lg md:rounded-tl-lg object-fill"
                 />
               </motion.div>
-              
+
               {/* Header section */}
               <div className="flex justify-between items-start p-4 border-b">
                 <div className="">
                   <motion.h3
-                    layoutId={`title-${active.title}-${id}`}
+                    layoutId={`title-${active.job_title}-${id}`}
                     className="font-bold text-neutral-700 dark:text-neutral-200"
                   >
-                    {active.title}
+                    {active.job_title}
                   </motion.h3>
                   <motion.p
-                    layoutId={`description-${active.description}-${id}`}
+                    layoutId={`description-${active.employer_name}-${id}`}
                     className="text-neutral-600 dark:text-neutral-400"
                   >
-                    {active.companyDescription}
+                    {active.employer_name}
                   </motion.p>
                 </div>
                 <motion.a
-                  layoutId={`button-${active.title}-${id}`}
-                  href={active.ctaLink}
+                  layoutId={`button-${active.job_title}-${id}`}
+                  href={active.job_apply_link}
                   target="_blank"
-                  className="px-4 py-3 text-sm rounded-full font-bold bg-green-500 text-white"
+                  className="px-8 py-2 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
+                  rel="noreferrer"
                 >
-                  {"Apply"}
+                  Apply Here
                 </motion.a>
               </div>
 
-              {/* Scrollable content with improved styling */}
+              {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto px-4 py-6 scroll-smooth scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
                 <div className="space-y-6 pb-6">
                   <div>
                     <motion.h4 className="font-bold text-lg mb-3">
-                      Responsibilities
+                      Job Description
                     </motion.h4>
-                    <ul className="list-disc pl-5 space-y-2">
-                      {active.responsibilities.map((task, index) => (
-                        <li key={index}>{task}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <motion.h4 className="font-bold text-lg mb-3">
-                      Qualifications
-                    </motion.h4>
-                    <ul className="list-disc pl-5 space-y-2">
-                      {active.requiredQualifications.map((qualification, index) => (
-                        <li key={index}>{qualification}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <motion.h4 className="font-bold text-lg mb-3">
-                      Preferred
-                    </motion.h4>
-                    <ul className="list-disc pl-5 space-y-2">
-                      {active.preferredQualifications.map(
-                        (qualification, index) => (
-                          <li key={index}>{qualification}</li>
-                        )
-                      )}
-                    </ul>
+                    <p>
+                      {active.job_description ||
+                        "Details available on apply link"}
+                    </p>
                   </div>
 
                   <div>
                     <motion.h4 className="font-bold text-lg mb-3">
                       Location
                     </motion.h4>
-                    <p>{active.location}</p>
+                    <p>
+                      {active.job_location || "Details available on apply link"}
+                    </p>
                   </div>
 
                   <div>
                     <motion.h4 className="font-bold text-lg mb-3">
-                      Compensation & Benefits
+                      Employment Type
                     </motion.h4>
-                    <ul className="list-disc pl-5 space-y-2">
-                      {active.compensationBenefits.map((benefit, index) => (
-                        <li key={index}>{benefit}</li>
-                      ))}
-                    </ul>
+                    <p>
+                      {active.job_employment_type ||
+                        "Details available on apply link"}
+                    </p>
                   </div>
 
                   <div>
                     <motion.h4 className="font-bold text-lg mb-3">
-                      Career Growth Opportunities
+                      Salary
                     </motion.h4>
-                    <p>{active.careerGrowth}</p>
+                    <p>
+                      {active.job_salary || "Details available on apply link"}
+                    </p>
                   </div>
 
                   <div>
                     <motion.h4 className="font-bold text-lg mb-3">
-                      Perks & Culture
+                      Company Website
                     </motion.h4>
-                    <p>{active.perksAndCulture}</p>
-                  </div>
-
-                  <div>
-                    <motion.h4 className="font-bold text-lg mb-3">
-                      Application Process
-                    </motion.h4>
-                    <p>{active.applicationProcess}</p>
-                  </div>
-
-                  <div>
-                    <motion.h4 className="font-bold text-lg mb-3">
-                      Contact
-                    </motion.h4>
-                    <p>{active.contact}</p>
+                    {active.employer_website ? (
+                      <a
+                        href={active.employer_website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        {active.employer_website}
+                      </a>
+                    ) : (
+                      <p>Details available on apply link</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -240,42 +239,120 @@ export default function JobSection() {
         ) : null}
       </AnimatePresence>
 
-      <ul className="max-w-2xl mx-auto w-full gap-4">
-        {filteredJobs.map((job, index) => (
-          <motion.div
-            layoutId={`card-${job.title}-${id}`}
-            key={`card-${job.title}-${id}`}
-            onClick={() => setActive(job)}
-            className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl cursor-pointer"
-          >
-            <div className="flex gap-4 flex-col md:flex-row">
-              <motion.div layoutId={`image-${job.title}-${id}`}>
-                <Image
-                  width={100}
-                  height={100}
-                  src={job.image || "/jobs.jpg"}
-                  alt={job.title}
-                  className="h-40 w-40 md:h-14 md:w-14 rounded-lg object-cover object-top"
-                />
-              </motion.div>
-              <div className="">
-                <motion.h3
-                  layoutId={`title-${job.title}-${id}`}
-                  className="font-medium text-neutral-800 dark:text-neutral-200 text-center md:text-left"
-                >
-                  {job.title}
-                </motion.h3>
-                <motion.p
-                  layoutId={`description-${job.description}-${id}`}
-                  className="text-neutral-600 dark:text-neutral-400 text-center md:text-left"
-                >
-                  {job.companyDescription}
-                </motion.p>
+      <div className="max-w-2xl mx-auto w-full">
+        <ul className="gap-4">
+          {jobs.map((job, index) => (
+            <motion.div
+              layoutId={`card-${job.job_title}-${id}`}
+              key={`card-${job.job_title}-${index}`}
+              onClick={() => setActive(job)}
+              className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl cursor-pointer"
+            >
+              <div className="flex gap-4 flex-col md:flex-row items-center">
+                <motion.div layoutId={`image-${job.job_title}-${id}`}>
+                  <Image
+                    width={100}
+                    height={100}
+                    src={job.employer_logo || "/jobs.jpg"}
+                    alt={job.job_title}
+                    className="h-40 w-40 md:h-14 md:w-14 rounded-lg object-cover object-top"
+                  />
+                </motion.div>
+                <div className="text-center md:text-left">
+                  <motion.h3
+                    layoutId={`title-${job.job_title}-${id}`}
+                    className="font-medium text-neutral-800 dark:text-neutral-200"
+                  >
+                    {job.job_title}
+                  </motion.h3>
+                  <motion.p
+                    layoutId={`description-${job.employer_name}-${id}`}
+                    className="text-neutral-600 dark:text-neutral-400"
+                  >
+                    {job.employer_name}
+                  </motion.p>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </ul>
+            </motion.div>
+          ))}
+        </ul>
+
+        <div className="mt-8 flex items-center justify-between border-t pt-4">
+          <div className="flex items-center gap-2">
+            <Select
+              value={perPage}
+              onValueChange={(value) => {
+                setPerPage(value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="30">30</SelectItem>
+                <SelectItem value="40">40</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-neutral-600">per page</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              className="w-10 h-10 p-0"
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {page > 3 && (
+              <>
+                <Button
+                  variant="ghost"
+                  className="w-10 h-10 p-0 text-blue-600 hover:text-blue-700"
+                  onClick={() => handlePageChange(1)}
+                >
+                  1
+                </Button>
+                {page > 4 && <span className="text-neutral-400 mx-1">...</span>}
+              </>
+            )}
+
+            {renderPaginationNumbers()}
+
+            {page < totalPages - 2 && (
+              <>
+                {page < totalPages - 3 && (
+                  <span className="text-neutral-400 mx-1">...</span>
+                )}
+                <Button
+                  variant="ghost"
+                  className="w-10 h-10 p-0 text-blue-600 hover:text-blue-700"
+                  onClick={() => handlePageChange(totalPages)}
+                >
+                  {totalPages}
+                </Button>
+              </>
+            )}
+
+            <Button
+              variant="ghost"
+              className="w-10 h-10 p-0"
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* <div ref={bottomRef} className="h-10 w-full" /> */}
     </div>
   );
 }
@@ -283,9 +360,6 @@ export default function JobSection() {
 export const CloseIcon = () => {
   return (
     <motion.svg
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.05 } }}
       xmlns="http://www.w3.org/2000/svg"
       width="24"
       height="24"
@@ -303,114 +377,3 @@ export const CloseIcon = () => {
     </motion.svg>
   );
 };
-
-const jobs = [
-  {
-    title: "Machine Learning Engineer",
-    image: "/jobs.jpg", // Using existing jobs.jpg as fallback
-    companyDescription:
-      "At XYZ Innovations, we’re leading the future of AI solutions...",
-    description: "We are seeking a Machine Learning Engineer...",
-    responsibilities: [
-      "Develop and implement machine learning algorithms.",
-      "Collaborate on AI products.",
-      "Optimize models.",
-    ],
-    requiredQualifications: [
-      "Bachelor’s degree in Computer Science.",
-      "3+ years of experience.",
-      "Proficiency in Python.",
-    ],
-    preferredQualifications: [
-      "Experience with cloud platforms.",
-      "Familiarity with NLP or computer vision.",
-    ],
-    location: "Remote",
-    compensationBenefits: [
-      "Competitive salary.",
-      "Health, dental, and vision insurance.",
-    ],
-    careerGrowth:
-      "Opportunity to lead AI projects and research cutting-edge technologies.",
-    perksAndCulture:
-      "Flexible working hours, remote-friendly environment, and a diverse, innovative team culture.",
-    applicationProcess:
-      "Send resume and cover letter to careers@xyzinnovations.com.",
-    contact: "hiring@xyzinnovations.com",
-    ctaLink: "#",
-    isHot: false, // Example property
-    date: "2024-09-01", // Example date
-  },
-  {
-    title: "Data Scientist",
-    image: "/jobs.jpg", // Using existing jobs.jpg as fallback
-    companyDescription:
-      "At ABC Analytics, we’re leading the future of data-driven solutions...",
-    description: "We are seeking a Data Scientist...",
-    responsibilities: [
-      "Develop and implement data models.",
-      "Collaborate on data products.",
-      "Analyze data trends.",
-    ],
-    requiredQualifications: [
-      "Bachelor’s degree in Statistics.",
-      "2+ years of experience.",
-      "Proficiency in R.",
-    ],
-    preferredQualifications: [
-      "Experience with data visualization tools.",
-      "Familiarity with machine learning algorithms.",
-    ],
-    location: "New York",
-    compensationBenefits: [
-      "Competitive salary.",
-      "Health, dental, and vision insurance.",
-    ],
-    careerGrowth:
-      "Opportunity to lead data projects and research cutting-edge technologies.",
-    perksAndCulture:
-      "Flexible working hours, collaborative environment, and a diverse, innovative team culture.",
-    applicationProcess:
-      "Send resume and cover letter to careers@abcanalytics.com.",
-    contact: "hiring@abcanalytics.com",
-    ctaLink: "#",
-    isHot: false,
-    date: "2024-09-05",
-  },
-  {
-    title: "AI Researcher",
-    image: "/jobs.jpg", // Using existing jobs.jpg as fallback
-    companyDescription:
-      "At DEF AI Labs, we’re leading the future of AI research...",
-    description: "We are seeking an AI Researcher...",
-    responsibilities: [
-      "Conduct research on AI algorithms.",
-      "Collaborate on AI projects.",
-      "Publish research papers.",
-    ],
-    requiredQualifications: [
-      "Ph.D. in Computer Science.",
-      "5+ years of experience.",
-      "Proficiency in Python and TensorFlow.",
-    ],
-    preferredQualifications: [
-      "Experience with deep learning frameworks.",
-      "Familiarity with natural language processing.",
-    ],
-    location: "Remote",
-    compensationBenefits: [
-      "Competitive salary.",
-      "Health, dental, and vision insurance.",
-    ],
-    careerGrowth:
-      "Opportunity to lead AI research projects and publish papers.",
-    perksAndCulture:
-      "Flexible working hours, remote-friendly environment, and a diverse, innovative team culture.",
-    applicationProcess:
-      "Send resume and cover letter to careers@defailabs.com.",
-    contact: "hiring@defailabs.com",
-    ctaLink: "#",
-    isHot: true,
-    date: "2024-07-01",
-  },
-];
