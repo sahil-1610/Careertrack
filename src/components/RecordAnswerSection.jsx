@@ -130,6 +130,8 @@ function RecordAnswerSection({
           height={300}
           className="absolute"
           alt="Webcam Background"
+          priority // Optional: Improves performance if the image is above the fold
+          unoptimized // Optional: Use if serving from an external source without Next.js optimization
         />
         <Webcam
           mirrored={true}

@@ -111,9 +111,9 @@ export default function InterviewPage() {
               {!webCamenabled ? (
                 <Image
                   src="/web_cam.png"
+                  alt="Webcam Background"
                   width={250}
                   height={300}
-                  alt="Webcam Background"
                   className="rounded-lg shadow-md"
                 />
               ) : (

@@ -25,5 +25,6 @@ export const config = {
     "/resume",
     "/jobs",
     "/interview/:path*",
+    "/mentor",
   ],
 };

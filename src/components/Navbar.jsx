@@ -1,32 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
-import { HoveredLink, Menu, MenuItem, ProductItem } from "./ui/navbar-menu";
+import React, { useEffect, useState } from "react";
+import { HoveredLink, Menu, MenuItem } from "./ui/navbar-menu";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import useAuthStore from "@/store/authStore";
 
 function Navbar({ className }) {
-  const [active, setActive] = useState(null);
   const router = useRouter();
+  const { isAuthenticated, logout, checkAuthStatus } = useAuthStore();
+  const [active, setActive] = useState(null); // Added state for active menu item
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
 
   const handleLogout = async () => {
-    try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-
-      if (response.ok) {
-        localStorage.removeItem("authToken");
-        router.push("/");
-      } else {
-        console.error("Logout failed");
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
+    const success = await logout();
+    if (success) {
+      router.push("/");
     }
   };
 
@@ -35,13 +28,15 @@ function Navbar({ className }) {
       className={cn("fixed top-9 inset-x-0 max-w-2xl mx-auto z-50", className)}
     >
       <Menu setActive={setActive}>
+        {" "}
+        {/* Pass setActive properly */}
         <Link href={"/"}>
-          <MenuItem setActive={setActive} active={active} item="Home" />
+          <MenuItem item="Home" setActive={setActive} active={active} />
         </Link>
         <Link href={"/profile"}>
-          <MenuItem setActive={setActive} active={active} item="Profile" />
+          <MenuItem item="Profile" setActive={setActive} active={active} />
         </Link>
-        <MenuItem setActive={setActive} active={active} item="BuildCareer">
+        <MenuItem item="BuildCareer" setActive={setActive} active={active}>
           <div className="flex flex-col space-y-4 text-sm">
             <HoveredLink href="/resume">Resume Classifier</HoveredLink>
             <HoveredLink href="/interview">Interview Preparation</HoveredLink>
@@ -50,13 +45,18 @@ function Navbar({ className }) {
             <HoveredLink href="/mentor">AI Mentor</HoveredLink>
           </div>
         </MenuItem>
-        <Link href={"/signup"}>
-          <MenuItem setActive={setActive} active={active} item="SignUp" />
-        </Link>
-          <button className="text-white" onClick={handleLogout} 
+        {isAuthenticated ? (
+          <button
+            className="text-white hover:text-red-500 transition-colors"
+            onClick={handleLogout}
           >
-            Log Out
+            LogOut
           </button>
+        ) : (
+          <Link href={"/signup"}>
+            <MenuItem item="SignUp" setActive={setActive} active={active} />
+          </Link>
+        )}
       </Menu>
     </div>
   );

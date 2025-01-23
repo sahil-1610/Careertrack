@@ -4,10 +4,10 @@ import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
 import { API } from "@/utils/api";
-import { IconBrandGithub, IconBrandGoogle } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { toast, ToastContainer } from "react-toastify"; // Import react-toastify
-import "react-toastify/dist/ReactToastify.css"; // Import styles
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import useAuthStore from "@/store/authStore";
 
 export function LoginForm() {
   const router = useRouter();
@@ -18,6 +18,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const { login } = useAuthStore();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,35 +26,24 @@ export function LoginForm() {
     setError("");
 
     try {
-      const res = await fetch(API.AUTH.LOGIN, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const success = await login(formData);
 
-      const data = await res.json();
-      console.log("Login response:", { status: res.status, data }); // Debug log
-
-      if (!res.ok) {
-        throw new Error(data.error || "Login failed");
+      if (success) {
+        toast.success("Login successful! Redirecting...", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        router.push("/profile");
+        router.refresh();
+      } else {
+        throw new Error("Login failed");
       }
-
-      toast.success("Login successful! Redirecting...", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-      });
-      router.push("/profile");
-      router.refresh();
     } catch (err) {
       console.error("Login error:", err);
       setError(err.message);
       toast.error(`Error: ${err.message}`, {
         position: "top-right",
         autoClose: 3000,
-        hideProgressBar: false,
       });
     } finally {
       setLoading(false);

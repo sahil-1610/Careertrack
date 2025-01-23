@@ -1,10 +1,7 @@
-// models/user.model.js
+// models/user.models.js
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import InterviewQuestion from "./interview.model";
-import InterviewAttempt from "./InterviewAttempt.model";
-import ResumeFeedback from "./resume.model";
 
 const userSchema = new mongoose.Schema(
   {
@@ -100,11 +97,17 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// Generate JWT token
+// Generate JWT token with more comprehensive payload
 userSchema.methods.generateAuthToken = function () {
-  return jwt.sign({ _id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
+  return jwt.sign(
+    {
+      _id: this._id,
+      email: this.email,
+      username: this.username,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 };
 
 // Verify credentials

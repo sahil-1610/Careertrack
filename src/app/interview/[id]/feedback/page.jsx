@@ -56,9 +56,19 @@ export default function LatestFeedbackPage() {
 
   if (!feedbackData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-500">No feedback available yet</p>
-      </div>
+      <>
+        <div className="min-h-screen flex items-center justify-center gap-6">
+          <p className=" text-xl text-red-500">No feedback available yet</p>
+          <button
+            onClick={() => {
+              router.replace("/");
+            }}
+            className="mt-6 shadow-lg hover:shadow-xl bg-blue-400 text-white px-8 py-2 rounded-md transition duration-200 my-10"
+          >
+            Go Home
+          </button>
+        </div>
+      </>
     );
   }
 

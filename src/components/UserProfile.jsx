@@ -155,11 +155,10 @@ export default function UserProfile() {
             <Image
               src={profileImage}
               alt="Profile"
-              layout="fill"
-              objectFit="cover"
-              className="rounded-full border border-gray-300"
+              fill // ✅ Correct way to use "fill" in Next.js 13+
+              className="object-cover rounded-full border border-gray-300"
               onError={() => setProfileImage("/avatar.png")}
-              unoptimized={true} // Add this for external images
+              unoptimized={true}
             />
           </div>
           <div className="ml-6">
