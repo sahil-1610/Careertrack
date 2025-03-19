@@ -25,7 +25,7 @@ function Navbar({ className }) {
 
   return (
     <div
-      className={cn("fixed top-9 inset-x-0 max-w-2xl mx-auto z-50", className)}
+      className={cn("fixed top-10 inset-x-0 max-w-2xl mx-auto z-50", className)}
     >
       <Menu setActive={setActive}>
         {" "}
@@ -47,7 +47,7 @@ function Navbar({ className }) {
         </MenuItem>
         {isAuthenticated ? (
           <button
-            className="text-white hover:text-red-500 transition-colors"
+            className="text-black dark:text-white hover:text-red-500 transition-colors"
             onClick={handleLogout}
           >
             LogOut

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import {API} from "@/utils/api"
-import { EvervaultCard } from "./ui/evervault-card";
+import { API } from "@/utils/api";
+import { FeatureBlockAnimatedCard } from "./ui/FeatureBlockAnimatedCard";
 import { IconLoader } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 
@@ -48,25 +48,29 @@ export function AddinterviewCard() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || errorData.details || "Failed to generate interview");
+        throw new Error(
+          errorData.error || errorData.details || "Failed to generate interview"
+        );
       }
 
       const data = await response.json();
-      
+
       if (data.success && data.interview?._id) {
         setShowForm(false);
         setLastRequestTime(Date.now());
         router.push(`/interview/${data.interview._id}`);
       } else {
-        throw new Error(data.error || data.details || "Invalid response format");
+        throw new Error(
+          data.error || data.details || "Invalid response format"
+        );
       }
-
     } catch (error) {
       console.error("Failed to start interview:", error);
       setError(
-        error.message === "Failed to fetch" 
+        error.message === "Failed to fetch"
           ? "Network error. Please check your connection and try again."
-          : error.message || "Failed to generate interview questions. Please try again."
+          : error.message ||
+              "Failed to generate interview questions. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -77,9 +81,9 @@ export function AddinterviewCard() {
     <>
       <div
         onClick={() => setShowForm(true)}
-        className="border border-black/[0.4] dark:border-white/[0.3] flex flex-col items-start max-w-xs mx-auto p-2 relative h-[15rem] cursor-pointer hover:shadow-lg transition-shadow"
+        className="max-w-sm mx-auto cursor-pointer"
       >
-        <EvervaultCard text=" Start New Interview" />
+        <FeatureBlockAnimatedCard />
       </div>
 
       {showForm && (
@@ -162,22 +166,21 @@ export function AddinterviewCard() {
                 >
                   Cancel
                 </button>
-                  <button
-                    className="px-6 py-3 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
-                    type="submit"
+                <button
+                  className="px-6 py-3 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
+                  type="submit"
                   // onClick={`/interview/{data.interview._id}/start`}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <IconLoader className="animate-spin mr-2" />
-                        <span>Generating interview...</span>
-                      </>
-                    ) : (
-                      "Start Interview"
-                    )}
-                  </button>
-               
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <IconLoader className="animate-spin mr-2" />
+                      <span>Generating interview...</span>
+                    </>
+                  ) : (
+                    "Start Interview"
+                  )}
+                </button>
               </div>
             </form>
           </div>

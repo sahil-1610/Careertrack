@@ -1,9 +1,10 @@
-import Image from "next/image";
 import HeroSection from "@/components/HeroSection";
 import Features from "@/components/Features";
 import Testimonials from "@/components/TestiomonialCards";
 import Mentorsintro from "@/components/Mentorsintro";
 import Footer from "@/components/Footer";
+import CareerPath from "@/components/CareerPath";
+import CallToAction from "@/components/CallToAction";
 
 export default function Home() {
   return (
@@ -11,7 +12,9 @@ export default function Home() {
       <HeroSection />
       <Features />
       <Testimonials />
+      <CareerPath/>
       <Mentorsintro />
+      <CallToAction/>
       <Footer />
     </main>
   );

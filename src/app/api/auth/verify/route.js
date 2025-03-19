@@ -1,4 +1,6 @@
 // app/api/auth/verify/route.js
+
+export const dynamic = "force-dynamic"; // ✅ Forces Next.js to always run dynamically
 import { NextResponse } from "next/server";
 import { getDataFromToken } from "@/helpers/getDataFromToken";
 
